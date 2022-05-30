@@ -12,6 +12,7 @@ type Shipment struct {
 }
 
 type Truck struct {
-	ID      string `json:"id"`
-	PlateNo string `json:"plateNo"`
+	ID        string `json:"id"`
+	PlateNo   string `json:"plateNo"`
+	IsDeleted bool   `json:"isDeleted"`
 }

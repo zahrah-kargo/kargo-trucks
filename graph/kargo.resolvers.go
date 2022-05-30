@@ -30,7 +30,7 @@ func validatePlateNo(plateNo string) error {
 			return errors.New(PLATE_NO_INVALID)
 		}
 
-		if number < 0 && number > 9999 {
+		if number < 0 || number > 9999 {
 			return errors.New(PLATE_NO_INVALID)
 		}
 
@@ -40,6 +40,14 @@ func validatePlateNo(plateNo string) error {
 	}
 
 	return nil
+
+}
+
+func (r *mutationResolver) findTruckByID(truckID string) (*model.Truck, error) {
+	if truck, ok := r.Trucks[truckID]; ok && !truck.IsDeleted {
+		return &truck, nil
+	}
+	return nil, errors.New(TRUCK_UNAVAILABLE)
 
 }
 
@@ -60,8 +68,9 @@ func (r *mutationResolver) SaveTruck(ctx context.Context, id *string, plateNo st
 
 func (r *mutationResolver) SaveShipment(ctx context.Context, id *string, name string, origin string, destination string, deliveryDate string, truckID string) (*model.Shipment, error) {
 
-	if _, ok := r.Trucks[truckID]; !ok {
-		return nil, errors.New(TRUCK_UNAVAILABLE)
+	_, err := r.findTruckByID(truckID)
+	if err != nil {
+		return nil, err
 	}
 
 	shipment := model.Shipment{
@@ -111,6 +120,15 @@ func (r *queryResolver) PaginatedShipments(ctx context.Context, id *string, orig
 	}
 
 	return shipments, nil
+}
+
+func (r *mutationResolver) DeleteTruck(ctx context.Context, id string) (bool, error) {
+	if truck, ok := r.Trucks[id]; ok {
+		truck.IsDeleted = true
+		r.Trucks[id] = truck
+		return true, nil
+	}
+	return false, errors.New(TRUCK_UNAVAILABLE)
 }
 
 // Mutation returns generated.MutationResolver implementation.
