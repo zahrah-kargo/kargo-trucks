@@ -1,6 +1,10 @@
 package graph
 
-import "kargo-trucks/graph/model"
+import (
+	"fmt"
+	"kargo-trucks/graph/model"
+	"math/rand"
+)
 
 // This file will not be regenerated automatically.
 //
@@ -9,4 +13,15 @@ import "kargo-trucks/graph/model"
 type Resolver struct {
 	Trucks    map[string]model.Truck
 	Shipments map[string]model.Shipment
+}
+
+func (r *Resolver) Init() {
+	for i := 0; i < 20; i++ {
+		num := rand.Intn(100)
+		truck := model.Truck{
+			ID:      fmt.Sprintf("TRUCK-%d", num),
+			PlateNo: fmt.Sprintf("B %d CD", num),
+		}
+		r.Trucks[truck.ID] = truck
+	}
 }

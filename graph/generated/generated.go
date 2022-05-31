@@ -45,9 +45,10 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
-		DeleteTruck  func(childComplexity int, id string) int
-		SaveShipment func(childComplexity int, id *string, name string, origin string, destination string, deliveryDate string, truckID string) int
-		SaveTruck    func(childComplexity int, id *string, plateNo string) int
+		DeleteTruck          func(childComplexity int, id string) int
+		SaveShipment         func(childComplexity int, id *string, name string, origin string, destination string, deliveryDate string, truckID string) int
+		SaveTruck            func(childComplexity int, id *string, plateNo string) int
+		SendTruckDataToEmail func(childComplexity int, email string) int
 	}
 
 	Query struct {
@@ -74,6 +75,7 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	SaveTruck(ctx context.Context, id *string, plateNo string) (*model.Truck, error)
 	DeleteTruck(ctx context.Context, id string) (bool, error)
+	SendTruckDataToEmail(ctx context.Context, email string) (bool, error)
 	SaveShipment(ctx context.Context, id *string, name string, origin string, destination string, deliveryDate string, truckID string) (*model.Shipment, error)
 }
 type QueryResolver interface {
@@ -131,6 +133,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.SaveTruck(childComplexity, args["id"].(*string), args["plateNo"].(string)), true
+
+	case "Mutation.sendTruckDataToEmail":
+		if e.complexity.Mutation.SendTruckDataToEmail == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_sendTruckDataToEmail_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SendTruckDataToEmail(childComplexity, args["email"].(string)), true
 
 	case "Query.paginatedShipments":
 		if e.complexity.Query.PaginatedShipments == nil {
@@ -310,6 +324,7 @@ type Query {
 type Mutation {
   saveTruck(id: ID, plateNo: String!): Truck!
   deleteTruck(id:ID!): Boolean!
+  sendTruckDataToEmail(email: String!): Boolean!
 
   saveShipment(id: ID, name: String!, origin: String!, destination: String!, delivery_date: String!, truckId: String!): Shipment!
 }
@@ -417,6 +432,21 @@ func (ec *executionContext) field_Mutation_saveTruck_args(ctx context.Context, r
 		}
 	}
 	args["plateNo"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_sendTruckDataToEmail_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["email"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["email"] = arg0
 	return args, nil
 }
 
@@ -669,6 +699,61 @@ func (ec *executionContext) fieldContext_Mutation_deleteTruck(ctx context.Contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteTruck_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_sendTruckDataToEmail(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_sendTruckDataToEmail(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SendTruckDataToEmail(rctx, fc.Args["email"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_sendTruckDataToEmail(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_sendTruckDataToEmail_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -3214,6 +3299,15 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteTruck(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "sendTruckDataToEmail":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_sendTruckDataToEmail(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {

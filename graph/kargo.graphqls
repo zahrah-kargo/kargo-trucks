@@ -22,6 +22,7 @@ type Query {
 type Mutation {
   saveTruck(id: ID, plateNo: String!): Truck!
   deleteTruck(id:ID!): Boolean!
+  sendTruckDataToEmail(email: String!): Boolean!
 
   saveShipment(id: ID, name: String!, origin: String!, destination: String!, delivery_date: String!, truckId: String!): Shipment!
 }

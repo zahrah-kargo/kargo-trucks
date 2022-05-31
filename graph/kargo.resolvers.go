@@ -9,8 +9,10 @@ import (
 	"fmt"
 	"kargo-trucks/graph/generated"
 	"kargo-trucks/graph/model"
+	"log"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 func validatePlateNo(plateNo string) error {
@@ -129,6 +131,50 @@ func (r *mutationResolver) DeleteTruck(ctx context.Context, id string) (bool, er
 		return true, nil
 	}
 	return false, errors.New(TRUCK_UNAVAILABLE)
+}
+
+func (r *mutationResolver) SendTruckDataToEmail(ctx context.Context, email string) (bool, error) {
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(r.Trucks) / 10)
+
+	for i := 0; i < len(r.Trucks)/10; i++ {
+		// In go routine we are only reading val from map
+		go func(rs *mutationResolver) {
+			defer wg.Done()
+			truckData := rs.generateTruckData()
+			_, err := generateCSVData(truckData)
+			if err != nil {
+				log.Println(err)
+			}
+
+			fmt.Println(truckData)
+
+			// err = sendEmail(csvFilename, email)
+			// if err != nil {
+			// 	log.Println(err)
+			// }
+		}(r)
+	}
+
+	wg.Wait()
+	return true, nil
+}
+
+func (r *mutationResolver) generateTruckData() [][]string {
+	trucksData := make([][]string, 10)
+
+	for _, truck := range r.Trucks {
+		if len(trucksData) == 10 {
+			break
+		}
+		trucksData = append(trucksData, []string{
+			truck.ID,
+			truck.PlateNo,
+			fmt.Sprintf("%v", truck.IsDeleted),
+		})
+	}
+	return trucksData
 }
 
 // Mutation returns generated.MutationResolver implementation.
